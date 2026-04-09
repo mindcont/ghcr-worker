@@ -9,8 +9,8 @@ export default {
       return new Response("OK", { status: 200 });
     }
 
-    // 只允许 GHCR Registry API，避免变成开放代理
-    if (!url.pathname.startsWith("/v2/")) {
+    // 只允许 Registry API 和 token 端点，避免变成开放代理
+    if (!url.pathname.startsWith("/v2/") && !url.pathname.startsWith("/token")) {
       return new Response("Not Found", { status: 404 });
     }
 
