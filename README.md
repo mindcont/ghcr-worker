@@ -41,3 +41,5 @@ wrangler deploy
 | `name` | Worker 名称 |
 | `routes` | 自定义域名绑定 |
 | `observability` | 日志观测开关 |
+
+
