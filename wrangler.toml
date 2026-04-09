@@ -1,9 +1,9 @@
-name = "ghcr-proxy"
+name = "ghcr-worker"
 main = "src/index.js"
 compatibility_date = "2026-04-09"
 
 routes = [
-  { pattern = "ghcr.wio.me/*", custom_domain = true }
+  { pattern = "ghcr.wio.me", custom_domain = true }
 ]
 
 [observability]
