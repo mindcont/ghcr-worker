@@ -3,28 +3,25 @@ export default {
     const incomingUrl = new URL(request.url)
     const targetUrl = new URL(request.url)
 
+    // 所有请求都转到 ghcr.io
     targetUrl.protocol = "https:"
     targetUrl.hostname = "ghcr.io"
 
     const headers = new Headers(request.headers)
     headers.set("Host", "ghcr.io")
 
-    // 某些情况下，避免把 Worker 自己的压缩协商透传得太激进
-    // 一般不删也行；出问题时可取消注释：
-    // headers.delete("Accept-Encoding")
-
-    const init = {
+    const reqInit = {
       method: request.method,
       headers,
       redirect: "manual",
       body: ["GET", "HEAD"].includes(request.method) ? undefined : request.body,
     }
 
-    const upstreamResp = await fetch(new Request(targetUrl.toString(), init))
+    const upstreamResp = await fetch(new Request(targetUrl.toString(), reqInit))
 
     const respHeaders = new Headers(upstreamResp.headers)
 
-    // 改写 Location，把 ghcr.io 跳转改回你的代理域名
+    // 改写 Location
     const location = respHeaders.get("Location")
     if (location) {
       try {
@@ -34,9 +31,22 @@ export default {
           locUrl.protocol = incomingUrl.protocol
           respHeaders.set("Location", locUrl.toString())
         }
-      } catch {
-        // 非标准 Location 就保持原样
-      }
+      } catch {}
+    }
+
+    // 改写 WWW-Authenticate 中的 realm
+    const wwwAuth = respHeaders.get("WWW-Authenticate")
+    if (wwwAuth) {
+      let newAuth = wwwAuth
+
+      newAuth = newAuth.replace(
+        /realm="https:\/\/ghcr\.io/gi,
+        `realm="${incomingUrl.protocol}//${incomingUrl.host}`
+      )
+
+      // 有些实现里也可能需要把 service 改成代理域名
+      // 但对 ghcr 来说，通常先只改 realm 更稳
+      respHeaders.set("WWW-Authenticate", newAuth)
     }
 
     return new Response(upstreamResp.body, {
